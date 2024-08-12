@@ -1,0 +1,41 @@
+package com.app.service;
+
+import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.app.custom_exceptions.ApiException;
+import com.app.dto.Signup;
+import com.app.entities.UserEntity;
+import com.app.repository.UserRepository;
+
+@Service
+@Transactional
+public class UserServiceImpl implements UserService {
+	
+	@Autowired
+	private UserRepository userRepository;
+	
+	@Autowired
+	private ModelMapper mapper;
+	
+	@Autowired
+	private PasswordEncoder encoder;
+
+	@Override
+	public Signup userRegistration(Signup reqDTO) {
+		// TODO Auto-generated method U
+		UserEntity user = mapper.map(reqDTO, UserEntity.class);
+		if(userRepository.existsByEmail(reqDTO.getEmail()))
+			throw new ApiException("Email already exists !!!");
+		user.setPassword(encoder.encode(user.getPassword()));
+		
+		return mapper.map(userRepository.save(user), Signup.class);
+	}
+	//dep : dao layer i/f
+			
+	
+
+}

@@ -1,0 +1,5 @@
+package com.app.Cloudinary;
+
+public class CloudinaryConfig {
+
+}

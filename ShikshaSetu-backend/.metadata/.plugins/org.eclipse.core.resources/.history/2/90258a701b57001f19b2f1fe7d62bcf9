@@ -1,0 +1,24 @@
+package com.app.entities;
+
+import javax.persistence.*;
+import java.io.Serializable;
+import java.util.Set;
+
+import javax.persistence.Entity;
+
+@Entity
+@Table(name = "subscriptions")
+public class Subscription  {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "status", nullable = false)
+    private String status;
+
+    @OneToMany(mappedBy = "subscription")
+    private Set<User> users;
+
+    // Getters and Setters
+}

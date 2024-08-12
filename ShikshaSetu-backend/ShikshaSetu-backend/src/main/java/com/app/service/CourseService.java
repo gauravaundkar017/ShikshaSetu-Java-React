@@ -1,0 +1,13 @@
+package com.app.service;
+
+import org.springframework.web.multipart.MultipartFile;
+
+import com.app.dto.CourseDTO;
+import com.app.entities.Course;
+
+import io.jsonwebtoken.io.IOException;
+
+public interface CourseService {
+	CourseDTO createCourse(CourseDTO courseDTO, MultipartFile thumbnailFile) throws IOException, java.io.IOException;
+
+}

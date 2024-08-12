@@ -1,0 +1,10 @@
+package com.app.entities;
+
+public class Avatar {
+	@Column(name = "public_id")
+    private String publicId;
+
+    @Column(name = "secure_url")
+    private String secureUrl;
+
+}

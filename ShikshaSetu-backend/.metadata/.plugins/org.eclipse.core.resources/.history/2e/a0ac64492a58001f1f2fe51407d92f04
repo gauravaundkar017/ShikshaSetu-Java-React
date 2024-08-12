@@ -1,0 +1,16 @@
+package com.app.dto;
+
+import java.time.LocalDate;
+
+public class DisplayCoursesDTO {
+	
+	private Long id;
+    private String title;
+    private String description;
+    private String category;
+    private ThumbnailDTO thumbnail;
+    private List<LectureDTO> lectures;
+    private String createdBy;
+    private LocalDate createdAt;
+    private LocalDate updatedAt;
+}

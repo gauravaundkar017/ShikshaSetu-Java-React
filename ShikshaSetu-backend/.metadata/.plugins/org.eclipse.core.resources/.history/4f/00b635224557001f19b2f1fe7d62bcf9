@@ -1,0 +1,14 @@
+package com.app.service;
+
+import java.io.File;
+import java.util.Map;
+
+public class CloudnaryServiceImpl implements CloudinaryService {
+
+	@Override
+	public Map<String, String> uploadImage(File file) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+}

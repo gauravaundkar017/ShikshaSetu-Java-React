@@ -68,7 +68,7 @@ public class UserEntity {
     @Column(nullable = false)
     private UserRole role = UserRole.USER; // Default value for role
 
-    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinColumn(name = "avatar_id", referencedColumnName = "id")
     private Avatar avatar;
 

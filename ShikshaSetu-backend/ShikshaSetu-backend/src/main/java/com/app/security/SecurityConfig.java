@@ -42,12 +42,16 @@ public class SecurityConfig {
 //		.exceptionHandling().authenticationEntryPoint(authEntry)
 //		.and()
 		.authorizeRequests()
-		.antMatchers("/","/user/register","/user/login","/user/logout","/user/me",
-				"/v*/api-doc*/**","/swagger-ui/**").permitAll()
-		// only required for JS clnts (react / angular) : for the pre flight requests
-		.antMatchers(HttpMethod.OPTIONS).permitAll()
-		.antMatchers("/update/:id").hasRole("USER")
-		.antMatchers("/courses").hasRole("ADMIN")
+		.antMatchers("/", "/user/register", "/user/login", "/user/logout", "/user/me", "/courses","/courses/{courseId}/lectures", "/v*/api-doc*/**", "/swagger-ui/**").permitAll()
+        .antMatchers(HttpMethod.OPTIONS).permitAll()
+        .antMatchers("/user/update/**").hasRole("USER")
+        .antMatchers("/courses/**").hasRole("ADMIN")
+//		.antMatchers("/","/user/register","/user/login","/user/logout","/user/me","/courses",
+//				"/v*/api-doc*/**","/swagger-ui/**").permitAll()
+//		// only required for JS clnts (react / angular) : for the pre flight requests
+//		.antMatchers(HttpMethod.OPTIONS).permitAll()
+//		.antMatchers("/update/:id").hasRole("USER")
+//		.antMatchers("/courses").hasRole("ADMIN")
 		.anyRequest().authenticated()
 		.and()
 		//to tell spring sec : not to use HttpSession to store user's auth details

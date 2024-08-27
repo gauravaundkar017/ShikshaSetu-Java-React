@@ -1,24 +1,19 @@
 package com.app.controller;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import java.io.IOException;
 
 import javax.validation.Valid;
 
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -30,8 +25,6 @@ import com.app.dto.ApiResponse;
 import com.app.dto.SignInRequest;
 import com.app.dto.SigninResponse;
 import com.app.dto.Signup;
-import com.app.entities.UserEntity;
-import com.app.security.CustomUserDetails;
 import com.app.security.JwtUtils;
 import com.app.service.UserService;
 
@@ -62,16 +55,7 @@ public class UserSignInSignupController {
 				request.getPassword());
 
 		Authentication verifiedToken = authMgr.authenticate(token);
-//        SecurityContextHolder.getContext().setAuthentication(verifiedToken);
-//
-//	    UserEntity user = (UserEntity) verifiedToken.getPrincipal();
-
-//	    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-//	    UserEntity user = (UserEntity) auth.getPrincipal();
-
-//		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-//		CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
-//		UserEntity user = userDetails.getUser();
+		
 
 		SigninResponse resp = new SigninResponse(jwtUtils.generateJwtToken(verifiedToken), "Successful Auth!!!!");
 
@@ -84,55 +68,26 @@ public class UserSignInSignupController {
 
 		return new ApiResponse("User has been logged out successfully.");
 	}
-
-//	@GetMapping("/me")
-//	public ApiResponse getProfile(@AuthenticationPrincipal UserDetails userDetails) {
-//		try {
-//			// Fetch user details using the service
-//			UserEntity user = userService.getUserByEmail(userDetails.getUsername());
-//
-//			// Constructing the response
-//			return new ApiResponse("User details fetched successfully", true, user);
-//
-//		} catch (Exception e) {
-//			// Handle exceptions and return an error response
-//			return new ApiResponse(e.getMessage(), false);
-//		}
-//	}
-
-//	private static final Logger logger = LoggerFactory.getLogger(UserSignInSignupController.class);
-//
-//	@GetMapping("/me")
-//	public ApiResponse getProfile(@AuthenticationPrincipal UserDetails userDetails) {
-//		try {
-//			if (userDetails == null) {
-//				logger.warn("UserDetails object is null");
-//				return new ApiResponse("User not authenticated", false);
-//			}
-//
-//			logger.info("Fetching profile for user: {}", userDetails.getUsername());
-//			UserEntity user = userService.getUserByEmail(userDetails.getUsername());
-//
-//			if (user == null) {
-//				logger.warn("User not found: {}", userDetails.getUsername());
-//				return new ApiResponse("User not found", false);
-//			}
-//
-//			return new ApiResponse("User details fetched successfully", true, user);
-//
-//		} catch (Exception e) {
-//			logger.error("Error fetching user profile", e);
-//			return new ApiResponse("An error occurred while fetching user details: " + e.getMessage(), false);
-//		}
-//	}
 	
-//	 @GetMapping("/me")
-//	    public ResponseEntity<?> getCurrentUser(@AuthenticationPrincipal CustomUserDetails userDetails) {
-//	        // Retrieve the user details from the CustomUserDetails object
-//		 System.out.println("Hello");
-//		 	System.out.println(userDetails.toString());
-//	        UserEntity user = userDetails.getUser();
-//	        System.out.println(user);
-//	        return ResponseEntity.ok(user); // Return the user details in the response
-//	    }
+	@GetMapping("/me")
+    public ResponseEntity<?> getProfile() {
+        return ResponseEntity.ok(userService.getCurrentUserProfile());
+    }
+
+  
+
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(@RequestBody String newPassword) {
+        return ResponseEntity.ok(userService.changePassword(newPassword));
+    }
+
+    @PutMapping("/update/{id}")
+    public ResponseEntity<?> updateProfile(@PathVariable Long id, @RequestPart("dto") @Valid Signup dto,
+                                           @RequestParam("file") MultipartFile file) throws IOException {
+        return ResponseEntity.ok(userService.updateUserProfile(id, dto, file));
+    }
 }
+	
+	
+
+

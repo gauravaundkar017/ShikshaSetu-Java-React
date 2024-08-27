@@ -30,6 +30,8 @@ public class CourseDTO {
     private String createdBy;
     
     private Thumbnail thumbnail;
+    
+   
 
     
 }

@@ -1,0 +1,176 @@
+package com.app.service;
+
+import java.io.IOException;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.app.custom_exceptions.ApiException;
+import com.app.dto.CourseDTO;
+import com.app.dto.DisplayCoursesDTO;
+import com.app.dto.LectureDTO;
+import com.app.entities.Course;
+import com.app.entities.Lecture;
+import com.app.entities.LectureFile;
+import com.app.entities.Thumbnail;
+import com.app.repository.CourseRepository;
+import com.app.repository.LectureRepository;
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
+
+@Service
+@Transactional
+public class CourseServiceImpl implements CourseService {
+
+	@Autowired
+	private CourseRepository courseRepository;
+
+	@Autowired
+	private Cloudinary cloudinary;
+
+	@Autowired
+	private ModelMapper mapper;
+	
+	@Autowired
+	private LectureRepository lectureRepository;
+
+	@Override
+	public CourseDTO createCourse(CourseDTO reqDTO, MultipartFile file) throws IOException {
+		// Check if a course with the same title already exists
+//        if (courseRepository.existsByTitle(reqDTO.getTitle())) {
+//            throw new ApiException("Course title already exists!");
+//        }
+
+		// Map the DTO to the Course entity
+		Course course = mapper.map(reqDTO, Course.class);
+
+		// Handle image upload
+		if (file != null && !file.isEmpty()) {
+			try {
+				Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
+				String publicId = uploadResult.get("public_id").toString();
+				String secureUrl = uploadResult.get("secure_url").toString();
+//                String publicId = uploadResult.get("public_id");
+//                String secureUrl = uploadResult.get("secure_url");
+
+				// Create and set the Thumbnail entity
+				Thumbnail thumbnail = new Thumbnail();
+				thumbnail.setPublicId(publicId);
+				thumbnail.setSecureUrl(secureUrl);
+				course.setThumbnail(thumbnail); // Set the thumbnail in the course entity
+			} catch (IOException e) {
+				throw new ApiException("Thumbnail upload failed: " + e.getMessage());
+			}
+		}
+
+		// Save the course entity to the database and return the saved entity mapped
+		// back to DTO
+		Course savedCourse = courseRepository.save(course);
+		return mapper.map(savedCourse, CourseDTO.class);
+	}
+
+	@Override
+	public List<DisplayCoursesDTO> getAllCourses() {
+		List<Course> courses = courseRepository.findAll();
+		return courses.stream().map(this::convertToDTO).collect(Collectors.toList());
+
+	}
+
+
+	
+	private DisplayCoursesDTO convertToDTO(Course course) {
+		return new DisplayCoursesDTO(
+				course.getId(),
+				course.getTitle(), 
+				course.getDescription(), 
+				course.getCategory(),
+				course.getThumbnail(),
+				course.getLectures().stream().map(this::convertLectureToDTO).collect(Collectors.toList()),
+				course.getCreatedBy(), 
+				course.getCreatedAt(), 
+				course.getUpdatedAt());
+	}
+
+	private LectureDTO convertLectureToDTO(Lecture lecture) {
+		return new LectureDTO(lecture.getId(), lecture.getTitle(), lecture.getDescription(),
+				convertLectureFileToDTO(lecture.getLectureFile()));
+	}
+
+	private LectureFile convertLectureFileToDTO(LectureFile lectureFile) {
+		if (lectureFile == null) {
+			return null;
+		}
+		return new LectureFile(lectureFile.getPublicId(), lectureFile.getSecureUrl());
+	}
+
+	@Override
+	public LectureDTO addLectureToCourse(Long courseId, LectureDTO lectureDTO, MultipartFile videoFile) throws IOException {
+		Optional<Course> courseOptional = courseRepository.findById(courseId);
+        if (!courseOptional.isPresent()) {
+            throw new RuntimeException("Course not found");
+        }
+
+        Course course = courseOptional.get();
+
+        // Upload video to Cloudinary
+        Map<String, Object> uploadResult = cloudinary.uploader().upload(videoFile.getBytes(), ObjectUtils.asMap("resource_type", "video"));
+
+        Lecture lecture = mapper.map(lectureDTO, Lecture.class);
+        lecture.setLectureFile(new LectureFile(
+            (String) uploadResult.get("public_id"),
+            (String) uploadResult.get("secure_url")
+        ));
+        lecture.setCourse(course);
+
+        Lecture savedLecture = lectureRepository.save(lecture);
+        course.getLectures().add(savedLecture);
+        courseRepository.save(course);
+
+        return mapper.map(savedLecture, LectureDTO.class);
+	}
+	@Override
+	public List<LectureDTO> getLecturesByCourseId(Long courseId) {
+	    Optional<Course> courseOptional = courseRepository.findById(courseId);
+	    if (!courseOptional.isPresent()) {
+	        throw new RuntimeException("Course not found");
+	    }
+
+	    Course course = courseOptional.get();
+	    return course.getLectures().stream()
+	                 .map(this::convertLectureToDTO)
+	                 .collect(Collectors.toList());
+	}
+	@Override
+	public void deleteLectureFromCourseById(Long courseId, Long lectureId) {
+	    Optional<Course> courseOptional = courseRepository.findById(courseId);
+	    if (!courseOptional.isPresent()) {
+	        throw new RuntimeException("Course not found");
+	    }
+
+	    Course course = courseOptional.get();
+	    Optional<Lecture> lectureOptional = lectureRepository.findById(lectureId);
+	    if (!lectureOptional.isPresent()) {
+	        throw new RuntimeException("Lecture not found");
+	    }
+
+	    Lecture lecture = lectureOptional.get();
+	    lectureRepository.delete(lecture);
+	    course.getLectures().remove(lecture);
+	    courseRepository.save(course);
+	}
+	
+	
+	
+	
+	
+	
+	
+}

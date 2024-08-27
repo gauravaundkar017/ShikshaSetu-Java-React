@@ -4,12 +4,14 @@ import java.util.Map;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.app.custom_exceptions.ApiException;
+import com.app.dto.ApiResponse;
 import com.app.dto.Signup;
 import com.app.entities.Avatar;
 import com.app.entities.Subscription;
@@ -37,6 +39,9 @@ public class UserServiceImpl implements UserService {
 	@Autowired
 	private Cloudinary cloudinary;
 
+	
+	@Autowired
+	private PasswordEncoder passwordEncoder;
 	@Override
 	public Signup userRegistration(Signup reqDTO, MultipartFile file) throws java.io.IOException {
 		// TODO Auto-generated method U
@@ -75,5 +80,45 @@ public class UserServiceImpl implements UserService {
 	public UserEntity getUserByEmail(String email) {
 		return userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
 	}
+	
+	@Override
+    public ApiResponse changePassword(String newPassword) {
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        UserEntity user = getUserByEmail(currentUsername);
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        return new ApiResponse("Password has been changed successfully");
+    }
+
+    @Override
+    public Signup updateUserProfile(Long id, Signup reqDTO, MultipartFile file) throws IOException, java.io.IOException {
+        UserEntity user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+        user.setFullName(reqDTO.getFullName());
+
+        if (file != null && !file.isEmpty()) {
+            Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
+            String imageUrl = (String) uploadResult.get("secure_url");
+            Avatar avatar = user.getAvatar();
+            if (avatar == null) {
+                avatar = new Avatar();
+                user.setAvatar(avatar);
+            }
+            avatar.setSecureUrl(imageUrl);
+        }
+
+        userRepository.save(user);
+        return reqDTO;
+    }
+
+    @Override
+    public Signup getCurrentUserProfile() {
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        UserEntity user = getUserByEmail(currentUsername);
+        Signup profile = new Signup();
+        profile.setFullName(user.getFullName());
+        profile.setEmail(user.getEmail());
+        // Set other fields if needed
+        return profile;
+    }
 
 }

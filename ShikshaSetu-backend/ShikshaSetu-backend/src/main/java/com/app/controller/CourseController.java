@@ -1,10 +1,17 @@
 package com.app.controller;
 
+import java.io.IOException;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -12,24 +19,77 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.app.dto.CourseDTO;
-import com.app.entities.Course;
+import com.app.dto.DisplayCoursesDTO;
+import com.app.dto.LectureDTO;
 import com.app.service.CourseService;
-
-import io.jsonwebtoken.io.IOException;
 
 @RestController
 @RequestMapping("/courses")
 public class CourseController {
 	@Autowired
 	private CourseService courseService;
-
-
-	@PreAuthorize("hasRole('ADMIN')")
+	
+//	@CrossOrigin(origins = "http://localhost:5173/")
+	@GetMapping
+    public ResponseEntity<List<?>> getAllCourses() {
+        List<DisplayCoursesDTO> courses = courseService.getAllCourses();
+        return ResponseEntity.ok(courses);
+    }
+	
+//	@CrossOrigin(origins = "http://localhost:5173/")
 	@PostMapping
 	public ResponseEntity<?> createCourse(@RequestPart("course") CourseDTO courseDTO,
-			@RequestParam("file") MultipartFile file)
-			throws IOException, java.io.IOException {
+			@RequestParam("file") MultipartFile file) throws IOException {
 		CourseDTO createdCourse = courseService.createCourse(courseDTO, file);
 		return new ResponseEntity<>(createdCourse, HttpStatus.CREATED);
 	}
+	
+    @PreAuthorize("hasRole('ADMIN')")	
+	@PostMapping("/{courseId}")
+    public ResponseEntity<LectureDTO> addLectureToCourse(
+        @PathVariable Long courseId,
+        @RequestParam("title") String title,
+        @RequestParam("description") String description,
+        @RequestParam("video") MultipartFile videoFile
+    ) throws IOException {
+        LectureDTO lectureDTO = new LectureDTO();
+		lectureDTO.setTitle(title);
+		lectureDTO.setDescription(description);
+
+		LectureDTO addedLecture = courseService.addLectureToCourse(courseId, lectureDTO, videoFile);
+		return ResponseEntity.ok(addedLecture);
+    }
+	
+    @GetMapping("/{id}/lectures")
+    public ResponseEntity<List<LectureDTO>> getLecturesByCourseId(@PathVariable Long id) {
+        List<LectureDTO> lectures = courseService.getLecturesByCourseId(id);
+        return ResponseEntity.ok(lectures);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}")
+    public ResponseEntity<CourseDTO> updateCourse(
+            @PathVariable Long id,
+            @RequestPart("course") CourseDTO courseDTO,
+            @RequestParam(value = "thumbnail", required = false) MultipartFile thumbnailFile) throws IOException {
+        CourseDTO updatedCourse = courseService.updateCourse(id, courseDTO, thumbnailFile);
+        return ResponseEntity.ok(updatedCourse);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{id}/lectures/{lectureId}")
+    public ResponseEntity<Void> deleteLectureFromCourseById(
+            @PathVariable Long id,
+            @PathVariable Long lectureId) {
+        courseService.deleteLectureFromCourseById(id, lectureId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> removeCourse(@PathVariable Long id) {
+        courseService.removeCourse(id);
+        return ResponseEntity.noContent().build();
+    }
+
 }

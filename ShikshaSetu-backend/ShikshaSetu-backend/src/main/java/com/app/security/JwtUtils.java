@@ -15,6 +15,9 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.stereotype.Component;
 
+import com.app.entities.Subscription;
+import com.app.entities.UserRole;
+
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -40,29 +43,70 @@ public class JwtUtils {
 
 	// will be invoked by Authentication controller) , upon successful
 	// authentication
+//	public String generateJwtToken(Authentication authentication) {
+//		log.info("generate jwt token " + authentication);
+//		CustomUserDetails userPrincipal = (CustomUserDetails) authentication.getPrincipal();
+////JWT : userName,issued at ,exp date,digital signature(does not typically contain password , can contain authorities
+//		return Jwts.builder() // JWTs : a Factory class , used to create JWT tokens
+//				.setSubject((userPrincipal.getUsername())) // setting subject part of the token(typically user
+//															// name/email)
+//				.setIssuedAt(new Date())// Sets the JWT Claims iat (issued at) value of current date
+//				.setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))// Sets the JWT Claims exp
+//																					// (expiration) value.
+//				 // Adding custom claims similar to the JavaScript version
+//	            .claim("id", userPrincipal.getUser().getId()) // User ID
+//	            .claim("role", userPrincipal.getUser().getRole()) // User role
+//	            .claim("subscription", userPrincipal.getUser().getSubscription()) // User subscription
+//	            .claim("email", userPrincipal.getUser().getEmail()) // User subscription
+//	            .claim("avatar", userPrincipal.getUser().getAvatar()) // User subscription
+//				
+//				// setting a custom claim , to add granted authorities
+//				.claim("authorities", getAuthoritiesInString(userPrincipal.getAuthorities()))
+//				// setting a custom claim , to add user id (remove it if not required in the
+//				// project)
+//				.claim("user_id", userPrincipal.getUser().getId())
+//
+//				.signWith(key, SignatureAlgorithm.HS512) // Signs the constructed JWT using the specified
+//															// algorithm with the specified key, producing a
+//															// JWS(Json web signature=signed JWT)
+//
+//				// Using token signing algo : HMAC using SHA-512
+//				.compact();// Actually builds the JWT and serializes it to a compact, URL-safe string
+//	}
 	public String generateJwtToken(Authentication authentication) {
-		log.info("generate jwt token " + authentication);
-		CustomUserDetails userPrincipal = (CustomUserDetails) authentication.getPrincipal();
-//JWT : userName,issued at ,exp date,digital signature(does not typically contain password , can contain authorities
-		return Jwts.builder() // JWTs : a Factory class , used to create JWT tokens
-				.setSubject((userPrincipal.getUsername())) // setting subject part of the token(typically user
-															// name/email)
-				.setIssuedAt(new Date())// Sets the JWT Claims iat (issued at) value of current date
-				.setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))// Sets the JWT Claims exp
-																					// (expiration) value.
-				// setting a custom claim , to add granted authorities
-				.claim("authorities", getAuthoritiesInString(userPrincipal.getAuthorities()))
-				// setting a custom claim , to add user id (remove it if not required in the
-				// project)
-				.claim("user_id", userPrincipal.getUser().getId())
+	    log.info("generate jwt token " + authentication);
+	    CustomUserDetails userPrincipal = (CustomUserDetails) authentication.getPrincipal();
 
-				.signWith(key, SignatureAlgorithm.HS512) // Signs the constructed JWT using the specified
-															// algorithm with the specified key, producing a
-															// JWS(Json web signature=signed JWT)
+	    // Extract necessary data from the UserEntity or related entities
+	    Long userId = userPrincipal.getUser().getId();
+	    UserRole role = userPrincipal.getUser().getRole();
+	    Subscription subscription = userPrincipal.getUser().getSubscription();
+	    String email = userPrincipal.getUser().getEmail();
+	    
+	    // Extracting only the publicId of the avatar if it is a proxy object
+	    String avatarPublicId = userPrincipal.getUser().getAvatar() != null 
+	        ? userPrincipal.getUser().getAvatar().getPublicId() 
+	        : null;
 
-				// Using token signing algo : HMAC using SHA-512
-				.compact();// Actually builds the JWT and serializes it to a compact, URL-safe string
+	    return Jwts.builder()
+	        .setSubject(userPrincipal.getUsername()) // Set the subject part of the token (typically username/email)
+	        .setIssuedAt(new Date()) // Set the issued at (iat) claim to the current date
+	        .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs)) // Set the expiration (exp) claim
+	        
+	        // Adding custom claims similar to the JavaScript version
+	        .claim("id", userId) // User ID
+	        .claim("role", role) // User role
+	        .claim("subscription", subscription) // User subscription
+	        .claim("email", email) // User email
+	        .claim("avatar", avatarPublicId) // Avatar publicId (not the whole entity)
+	        
+	        // Setting a custom claim to add granted authorities
+	        .claim("authorities", getAuthoritiesInString(userPrincipal.getAuthorities()))
+
+	        .signWith(key, SignatureAlgorithm.HS512) // Sign the JWT using the specified algorithm and key
+	        .compact(); // Build the JWT and serialize it to a compact, URL-safe string
 	}
+
 
 	// this method will be invoked by our custom JWT filter
 	public String getUserNameFromJwtToken(Claims claims) {
